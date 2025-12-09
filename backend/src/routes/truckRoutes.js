@@ -1,14 +1,28 @@
+
+
 import { Router } from 'express';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
+import { validate, createTruckSchema, updateTruckSchema, mongoIdSchema } from '../middleware/validationMiddleware.js';
+import {
+  getTrucks,
+  getTruck,
+  createTruck,
+  updateTruck,
+  deleteTruck
+} from '../controllers/truckController.js';
 
 const router = Router();
 
-// Placeholder - will be implemented in Day 2
-router.use(protect);
-router.use(adminOnly);
+router.use(protect); // Protect all routes
 
-router.get('/', (req, res) => {
-  res.json({ success: true, message: 'Truck routes - coming soon', data: [] });
-});
+router.route('/')
+  .get(getTrucks)
+  .post(adminOnly, validate(createTruckSchema), createTruck);
+
+router.route('/:id')
+  .get(validate(mongoIdSchema, 'params'), getTruck)
+  .put(adminOnly, validate(mongoIdSchema, 'params'), validate(updateTruckSchema), updateTruck)
+  .delete(adminOnly, validate(mongoIdSchema, 'params'), deleteTruck);
 
 export default router;
+

@@ -1,13 +1,28 @@
+
+
 import { Router } from 'express';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, adminOnly } from '../middleware/authMiddleware.js';
+import { validate, createFuelSchema, updateFuelSchema, mongoIdSchema } from '../middleware/validationMiddleware.js';
+import {
+  getFuelRecords,
+  getFuelRecord,
+  createFuelRecord,
+  updateFuelRecord,
+  deleteFuelRecord
+} from '../controllers/fuelController.js';
 
 const router = Router();
 
-// Placeholder - will be implemented in Day 2
 router.use(protect);
 
-router.get('/', (req, res) => {
-  res.json({ success: true, message: 'Fuel routes - coming soon', data: [] });
-});
+router.route('/')
+  .get(getFuelRecords)
+  .post(validate(createFuelSchema), createFuelRecord);
+
+router.route('/:id')
+  .get(validate(mongoIdSchema, 'params'), getFuelRecord)
+  .put(adminOnly, validate(mongoIdSchema, 'params'), validate(updateFuelSchema), updateFuelRecord)
+  .delete(adminOnly, validate(mongoIdSchema, 'params'), deleteFuelRecord);
 
 export default router;
+
