@@ -1,3 +1,5 @@
+import logger from '../config/logger.js';
+
 /**
  * Custom error class for API errors
  */
@@ -54,6 +56,15 @@ export const errorHandler = (err, req, res, next) => {
   if (err.name === 'TokenExpiredError') {
     statusCode = 401;
     message = 'Token expired';
+  }
+
+  // Log error with Winston
+  if (statusCode >= 500) {
+    logger.error(`${statusCode} - ${message} - ${req.originalUrl} - ${req.method}`, {
+      stack: err.stack
+    });
+  } else if (statusCode >= 400) {
+    logger.warn(`${statusCode} - ${message} - ${req.originalUrl} - ${req.method}`);
   }
 
   res.status(statusCode).json({

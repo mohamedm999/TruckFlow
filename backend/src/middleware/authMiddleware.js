@@ -1,9 +1,9 @@
-import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { ApiError } from './errorMiddleware.js';
+import { verifyAccessToken } from '../utils/tokenUtils.js';
 
 /**
- * Protect routes - verify JWT token
+ * Protect routes - verify Access Token
  */
 export const protect = async (req, res, next) => {
   try {
@@ -18,8 +18,8 @@ export const protect = async (req, res, next) => {
       throw new ApiError(401, 'Not authorized, no token provided');
     }
 
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Verify access token
+    const decoded = verifyAccessToken(token);
 
     // Get user from token
     const user = await User.findById(decoded.id).select('-password');
@@ -35,10 +35,14 @@ export const protect = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    if (error instanceof ApiError) {
+    if (error.name === 'TokenExpiredError') {
+      next(new ApiError(401, 'Access token expired'));
+    } else if (error.name === 'JsonWebTokenError') {
+      next(new ApiError(401, 'Invalid access token'));
+    } else if (error instanceof ApiError) {
       next(error);
     } else {
-      next(new ApiError(401, 'Not authorized, token invalid'));
+      next(new ApiError(401, 'Not authorized'));
     }
   }
 };

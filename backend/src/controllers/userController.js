@@ -1,6 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import User from '../models/User.js';
 import { ApiError } from '../middleware/errorMiddleware.js';
+import { formatUserResponse } from '../utils/helpers.js';
 
 /**
  * @desc    Get all users
@@ -28,7 +29,7 @@ export const getUsers = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     count: users.length,
-    data: users
+    data: users.map(formatUserResponse)
   });
 });
 
@@ -46,7 +47,7 @@ export const getUser = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    data: user
+    data: formatUserResponse(user)
   });
 });
 
@@ -75,7 +76,7 @@ export const createUser = asyncHandler(async (req, res) => {
 
   res.status(201).json({
     success: true,
-    data: user
+    data: formatUserResponse(user)
   });
 });
 
@@ -104,7 +105,7 @@ export const updateUser = asyncHandler(async (req, res) => {
 
   res.json({
     success: true,
-    data: user
+    data: formatUserResponse(user)
   });
 });
 

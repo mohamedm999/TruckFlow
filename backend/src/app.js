@@ -1,8 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
+import compression from 'compression';
 import { errorHandler, notFound } from './middleware/errorMiddleware.js';
+import { apiLimiter } from './middleware/rateLimiter.js';
+import httpLogger from './middleware/httpLogger.js';
+import logger from './config/logger.js';
 
 // Route imports
 import authRoutes from './routes/authRoutes.js';
@@ -24,14 +28,21 @@ app.use(cors({
   credentials: true
 }));
 
+// Compression middleware (gzip)
+app.use(compression());
+
+// Cookie parser
+app.use(cookieParser());
+
 // Body parser
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Logging
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-}
+// HTTP request logging with Winston
+app.use(httpLogger);
+
+// Apply rate limiting to all API routes
+app.use('/api', apiLimiter);
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -53,4 +64,5 @@ app.get('/api/health', (req, res) => {
 app.use(notFound);
 app.use(errorHandler);
 
+export { logger };
 export default app;
