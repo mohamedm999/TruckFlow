@@ -113,6 +113,15 @@ export const createFuelSchema = Joi.object({
   fullTank: Joi.boolean()
 });
 
+export const updateFuelSchema = Joi.object({
+  truck: Joi.string().hex().length(24),
+  date: Joi.date(),
+  odometer: Joi.number().min(0),
+  liters: Joi.number().min(0.1),
+  pricePerLiter: Joi.number().min(0),
+  fullTank: Joi.boolean()
+}).min(1);
+
 // ==================== Trailer Validation Schemas ====================
 
 export const createTrailerSchema = Joi.object({
@@ -153,4 +162,61 @@ export const updateTireSchema = Joi.object({
   wearLevel: Joi.number().min(0).max(100)
 }).min(1);
 
+// ==================== Trip Validation Schemas ====================
+
+export const createTripSchema = Joi.object({
+  tripId: Joi.string().trim().uppercase().required(),
+  truckId: Joi.string().hex().length(24).required(),
+  trailerId: Joi.string().hex().length(24).allow(null),
+  chauffeurId: Joi.string().hex().length(24).required(),
+  origin: Joi.string().required(),
+  destination: Joi.string().required(),
+  plannedDeparture: Joi.date(),
+  mileageStart: Joi.number().min(0),
+  notes: Joi.string().allow('', null)
+});
+
+export const updateTripSchema = Joi.object({
+  truckId: Joi.string().hex().length(24),
+  trailerId: Joi.string().hex().length(24).allow(null),
+  chauffeurId: Joi.string().hex().length(24),
+  origin: Joi.string(),
+  destination: Joi.string(),
+  notes: Joi.string().allow('', null),
+  status: Joi.string().valid('Planned', 'InProgress', 'Completed', 'Cancelled'),
+  plannedDeparture: Joi.date(),
+  actualDeparture: Joi.date(),
+  actualArrival: Joi.date(),
+  mileageStart: Joi.number().min(0),
+  mileageEnd: Joi.number().min(0)
+}).min(1);
+
+export const updateTripStatusSchema = Joi.object({
+  status: Joi.string().valid('Planned', 'InProgress', 'Completed', 'Cancelled').required(),
+  mileageEnd: Joi.number().min(0)
+});
+
+export const updateTripMileageSchema = Joi.object({
+  mileageStart: Joi.number().min(0),
+  mileageEnd: Joi.number().min(0)
+}).min(1);
+
+// ==================== Maintenance Validation Schemas ====================
+
+export const createMaintenanceSchema = Joi.object({
+  vehicleType: Joi.string().valid('Truck', 'Trailer').required(),
+  vehicleId: Joi.string().hex().length(24).required(),
+  type: Joi.string().required(),
+  scheduledDate: Joi.date().required(),
+  cost: Joi.number().min(0),
+  notes: Joi.string().allow('', null)
+});
+
+export const updateMaintenanceSchema = Joi.object({
+  type: Joi.string(),
+  scheduledDate: Joi.date(),
+  completedDate: Joi.date(),
+  cost: Joi.number().min(0),
+  notes: Joi.string().allow('', null)
+}).min(1);
 

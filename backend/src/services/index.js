@@ -1,4 +1,3 @@
-// Services for business logic
-// PDF generation, notification services, etc. will go here
-
-export default {};
+export { createNotification, notifyTripAssigned, notifyTripCompleted, notifyMaintenanceDue } from './notificationService.js';
+export { getAverageTripDistance, getTripFuelEfficiency, getChauffeurPerformance, getFleetStatistics } from './analyticsService.js';
+export { generateTripPDF } from './pdfService.js';

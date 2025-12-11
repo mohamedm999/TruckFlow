@@ -137,6 +137,19 @@ describe('Auth Middleware', () => {
       expect(next).toHaveBeenCalledWith(expect.any(ApiError));
       expect(next.mock.calls[0][0].message).toBe('Access token expired');
     });
+
+    it('should call next with generic error for unknown errors', async () => {
+      req.headers.authorization = 'Bearer valid_token';
+      const error = new Error('Unknown error');
+      verifyAccessToken.mockImplementation(() => {
+        throw error;
+      });
+
+      await protect(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(expect.any(ApiError));
+      expect(next.mock.calls[0][0].message).toBe('Not authorized');
+    });
   });
 
   describe('authorize middleware', () => {
