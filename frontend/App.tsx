@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { TrucksPage } from './pages/TrucksPage';
+import { TrailersPage } from './pages/TrailersPage';
 import { TripsPage } from './pages/TripsPage';
 import { Login } from './pages/Login';
 
@@ -32,6 +33,7 @@ const AppRoutes = () => {
             <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/trucks" element={<TrucksPage />} />
+                <Route path="/trailers" element={<TrailersPage />} />
                 <Route path="/trips" element={<TripsPage />} />
                 <Route path="/maintenance" element={<div className="p-8">Maintenance Page Placeholder</div>} />
                 <Route path="/reports" element={<div className="p-8">Reports Page Placeholder</div>} />

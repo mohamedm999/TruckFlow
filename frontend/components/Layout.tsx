@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Truck, 
+  Container,
   Map, 
   Wrench, 
   LogOut, 
@@ -28,7 +29,8 @@ export const Layout: React.FC = () => {
 
   const navItems = [
     { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} />, roles: [UserRole.ADMIN, UserRole.CHAUFFEUR] },
-    { name: 'Flotte', path: '/trucks', icon: <Truck size={20} />, roles: [UserRole.ADMIN] },
+    { name: 'Camions', path: '/trucks', icon: <Truck size={20} />, roles: [UserRole.ADMIN] },
+    { name: 'Remorques', path: '/trailers', icon: <Container size={20} />, roles: [UserRole.ADMIN] },
     { name: 'Trajets', path: '/trips', icon: <Map size={20} />, roles: [UserRole.ADMIN, UserRole.CHAUFFEUR] },
     { name: 'Maintenance', path: '/maintenance', icon: <Wrench size={20} />, roles: [UserRole.ADMIN] },
   ];

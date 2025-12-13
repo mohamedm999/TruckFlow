@@ -128,6 +128,35 @@ class ApiService {
     });
   }
 
+  // Trailers
+  async getTrailers() {
+    return this.request<any[]>('/trailers');
+  }
+
+  async getTrailer(id: string) {
+    return this.request<any>(`/trailers/${id}`);
+  }
+
+  async createTrailer(data: any) {
+    return this.request<any>('/trailers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateTrailer(id: string, data: any) {
+    return this.request<any>(`/trailers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteTrailer(id: string) {
+    return this.request<any>(`/trailers/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Trips
   async getTrips() {
     return this.request<any[]>('/trips');
