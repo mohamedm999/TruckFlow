@@ -51,6 +51,10 @@ class ApiService {
       const data = await response.json();
 
       if (!response.ok) {
+        // Dispatch 401 event for global logout
+        if (response.status === 401) {
+          window.dispatchEvent(new Event('unauthorized'));
+        }
         throw new Error(data.message || 'Request failed');
       }
 

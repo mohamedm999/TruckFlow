@@ -7,7 +7,7 @@ import { ApiError } from './errorMiddleware.js';
  */
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per windowMs
+  max: 10000, // High limit for development
   message: {
     success: false,
     message: 'Too many requests, please try again later'
@@ -22,7 +22,7 @@ export const apiLimiter = rateLimit({
  */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 login attempts per 15 minutes
+  max: 10000, // High limit for development
   message: {
     success: false,
     message: 'Too many login attempts, please try again after 15 minutes'
@@ -37,7 +37,7 @@ export const authLimiter = rateLimit({
  */
 export const passwordLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // 3 attempts per hour
+  max: 1000, // High limit for development
   message: {
     success: false,
     message: 'Too many password change attempts, please try again after 1 hour'

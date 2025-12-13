@@ -1,28 +1,85 @@
+# Login Page Fix Required
+
+## ❌ Current Issue
+
+**Line 97:** `disabled={isSubmitting}` - `isSubmitting` is not defined
+**Line 100:** `{isSubmitting ? 'Connexion...' : 'Se Connecter'}` - `isSubmitting` is not defined
+**Line 101:** `{!isSubmitting && <ArrowRight />}` - `isSubmitting` is not defined
+
+## ✅ Solution
+
+Replace all `isSubmitting` with `isLoading` (which comes from `useAuth()`)
+
+---
+
+## Changes Needed:
+
+### 1. Clean up state declarations (Lines 9-15)
+**Current:**
+```tsx
+const [email, setEmail] = useState('');
+const [error, setError] = useState('');
+const { login, isLoading } = useAuth();
+const navigate = useNavigate();
+const [password, setPassword] = useState('');
+```
+
+**Fixed:**
+```tsx
+const [email, setEmail] = useState('');
+const [password, setPassword] = useState('');
+const [error, setError] = useState('');
+const { login, isLoading } = useAuth();
+const navigate = useNavigate();
+```
+
+### 2. Add disabled to email input (Line 65)
+**Add:** `disabled={isLoading}`
+
+### 3. Add disabled to password input (Line 81)
+**Add:** `disabled={isLoading}`
+
+### 4. Fix button disabled (Line 97)
+**Change:** `disabled={isSubmitting}` → `disabled={isLoading}`
+
+### 5. Fix button text (Line 100)
+**Change:** `{isSubmitting ? 'Connexion...' : 'Se Connecter'}` → `{isLoading ? 'Connexion...' : 'Se Connecter'}`
+
+### 6. Fix arrow icon (Line 101)
+**Change:** `{!isSubmitting && <ArrowRight />}` → `{!isLoading && <ArrowRight />}`
+
+---
+
+## Complete Fixed Code:
+
+```tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, Lock, Mail, AlertCircle, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-
 import { Button } from '../components/ui/Button';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, isLoading, error, clearError } = useAuth();
+  const [error, setError] = useState('');
+  const { login, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    clearError();
+    setError('');
+    
     const success = await login(email, password);
     if (success) {
       navigate('/');
+    } else {
+      setError('Email ou mot de passe invalide.');
     }
   };
 
   return (
     <div className="relative flex items-center justify-center min-h-screen px-4 py-12 overflow-hidden bg-slate-950 sm:px-6 lg:px-8">
-      {/* Background Decor */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px]"></div>
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-orange-600/10 rounded-full blur-[100px]"></div>
 
@@ -57,11 +114,11 @@ export const Login: React.FC = () => {
                         <input
                         type="email"
                         required
+                        disabled={isLoading}
                         className="block w-full pl-10 bg-slate-950 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent p-2.5 transition-all disabled:opacity-50"
                         placeholder="admin@truckflow.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        disabled={isLoading}
                         />
                     </div>
                 </div>
@@ -75,11 +132,11 @@ export const Login: React.FC = () => {
                         <input
                         type="password"
                         required
+                        disabled={isLoading}
                         className="block w-full pl-10 bg-slate-950 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent p-2.5 transition-all disabled:opacity-50"
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        disabled={isLoading}
                         />
                     </div>
                 </div>
@@ -113,4 +170,16 @@ export const Login: React.FC = () => {
     </div>
   );
 };
+```
 
+---
+
+## Summary of Changes:
+
+1. ✅ Organized state declarations
+2. ✅ Added `disabled={isLoading}` to email input
+3. ✅ Added `disabled={isLoading}` to password input
+4. ✅ Changed `isSubmitting` → `isLoading` (3 places)
+5. ✅ Added `disabled:opacity-50` to input classes
+
+Copy this fixed code to replace the current Login.tsx file.
