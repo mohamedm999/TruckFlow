@@ -48,6 +48,8 @@ export const createMaintenanceRecord = asyncHandler(async (req, res) => {
     notes
   });
 
+  await record.populate('vehicleId', 'registrationNumber brand model type');
+
   res.status(201).json({ success: true, data: record });
 });
 
@@ -67,6 +69,7 @@ export const updateMaintenanceRecord = asyncHandler(async (req, res) => {
   });
 
   const updatedRecord = await record.save();
+  await updatedRecord.populate('vehicleId', 'registrationNumber brand model type');
   res.json({ success: true, data: updatedRecord });
 });
 

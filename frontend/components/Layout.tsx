@@ -31,7 +31,9 @@ export const Layout: React.FC = () => {
     { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} />, roles: [UserRole.ADMIN, UserRole.CHAUFFEUR] },
     { name: 'Camions', path: '/trucks', icon: <Truck size={20} />, roles: [UserRole.ADMIN] },
     { name: 'Remorques', path: '/trailers', icon: <Container size={20} />, roles: [UserRole.ADMIN] },
+    { name: 'Pneus', path: '/tires', icon: <Container size={20} />, roles: [UserRole.ADMIN] },
     { name: 'Trajets', path: '/trips', icon: <Map size={20} />, roles: [UserRole.ADMIN, UserRole.CHAUFFEUR] },
+    { name: 'Utilisateurs', path: '/users', icon: <UserIcon size={20} />, roles: [UserRole.ADMIN] },
     { name: 'Maintenance', path: '/maintenance', icon: <Wrench size={20} />, roles: [UserRole.ADMIN] },
   ];
 

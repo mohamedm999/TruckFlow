@@ -1,338 +1,530 @@
-import React, { useState } from 'react';
-import { jsPDF } from "jspdf";
-import { Plus, Search, MapPin, Calendar, Truck, User, ArrowRight, Download, Clock } from 'lucide-react';
-import { MOCK_TRIPS, MOCK_TRUCKS, MOCK_USERS, MOCK_TRAILERS } from '../constants';
-import { Trip, TripStatus } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Plus, Search, Filter, Edit, Trash2, MapPin, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
-import { useAuth } from '../context/AuthContext';
+import { Toast } from '../components/ui/Toast';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { fetchTrips, createTrip, updateTrip, deleteTrip } from '../store/slices/tripsSlice';
+import { fetchTrucks } from '../store/slices/trucksSlice';
+import { fetchTrailers } from '../store/slices/trailersSlice';
+import { api } from '../services/api';
 
 export const TripsPage: React.FC = () => {
-  const { user } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
+  const dispatch = useAppDispatch();
+  const trips = useAppSelector(state => state.trips.trips);
+  const trucks = useAppSelector(state => state.trucks.trucks);
+  const trailers = useAppSelector(state => state.trailers.trailers);
+  const isLoading = useAppSelector(state => state.trips.isLoading);
+  const error = useAppSelector(state => state.trips.error);
   
-  let displayTrips = MOCK_TRIPS;
-  if (user?.role === 'chauffeur') {
-    displayTrips = displayTrips.filter(t => t.chauffeurId === user.id);
-  }
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTrip, setEditingTrip] = useState<any | null>(null);
+  const [users, setUsers] = useState<any[]>([]);
+  const [formData, setFormData] = useState<any>({
+    tripId: '',
+    truckId: '',
+    trailerId: '',
+    chauffeurId: '',
+    origin: '',
+    destination: '',
+    plannedDeparture: '',
+    mileageStart: 0,
+    notes: ''
+  });
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; tripId: string | null }>({ isOpen: false, tripId: null });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const getStatusVariant = (status: TripStatus) => {
+  useEffect(() => {
+    dispatch(fetchTrips());
+    dispatch(fetchTrucks());
+    dispatch(fetchTrailers());
+    loadUsers();
+  }, [dispatch]);
+
+  const loadUsers = async () => {
+    try {
+      const response = await api.getUsers();
+      console.log('RAW API RESPONSE:', response);
+      const userData = response.data || [];
+      console.log('Loaded users:', userData);
+      console.log('First user:', JSON.stringify(userData[0], null, 2));
+      console.log('First user keys:', Object.keys(userData[0] || {}));
+      setUsers(userData);
+    } catch (err) {
+      console.error('Failed to load users:', err);
+      setToast({ message: 'Erreur lors du chargement des utilisateurs', type: 'error' });
+    }
+  };
+
+  const getStatusVariant = (status: string) => {
     switch (status) {
-      case TripStatus.COMPLETED: return 'success';
-      case TripStatus.IN_PROGRESS: return 'info';
-      case TripStatus.PLANNED: return 'warning';
-      case TripStatus.CANCELLED: return 'danger';
+      case 'Planned': return 'info';
+      case 'InProgress': return 'warning';
+      case 'Completed': return 'success';
+      case 'Cancelled': return 'danger';
       default: return 'default';
     }
   };
 
-  const getTruckReg = (id: string) => MOCK_TRUCKS.find(t => t.id === id)?.registrationNumber || 'Inconnu';
-  const getDriver = (id: string) => MOCK_USERS.find(u => u.id === id);
-  const getTrailer = (id?: string) => id ? MOCK_TRAILERS.find(t => t.id === id) : null;
+  const filteredTrips = trips.filter(trip => 
+    trip.tripId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    trip.origin.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    trip.destination.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const handleDownloadPdf = (trip: Trip) => {
-    const doc = new jsPDF();
-    const driver = getDriver(trip.chauffeurId);
-    const truck = MOCK_TRUCKS.find(t => t.id === trip.truckId);
-    const trailer = getTrailer(trip.trailerId);
+  const handleDeleteClick = (id: string) => {
+    console.log('Delete clicked for trip ID:', id);
+    setDeleteConfirm({ isOpen: true, tripId: id });
+  };
 
-    // Header Background
-    doc.setFillColor(234, 88, 12); // Orange-600
-    doc.rect(0, 0, 210, 30, 'F');
-
-    // Header Text
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
-    doc.setFont("helvetica", "bold");
-    doc.text("TruckFlow", 14, 20);
-    
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text("Rapport de Mission", 160, 20);
-
-    // Trip Info Section
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    doc.text(`Trajet #${trip.id.toUpperCase()}`, 14, 50);
-
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Généré le ${new Date().toLocaleDateString()}`, 14, 56);
-
-    // Status Badge Simulation
-    doc.setDrawColor(200, 200, 200);
-    doc.setFillColor(245, 245, 245);
-    doc.roundedRect(160, 42, 35, 10, 2, 2, 'FD');
-    doc.setFontSize(10);
-    doc.setTextColor(50, 50, 50);
-    doc.text(trip.status, 165, 48);
-
-    // Details Grid
-    let y = 75;
-    
-    // Route
-    doc.setFontSize(14);
-    doc.setTextColor(234, 88, 12); // Orange
-    doc.setFont("helvetica", "bold");
-    doc.text("Itinéraire", 14, y);
-    y += 10;
-
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
-    doc.setFont("helvetica", "bold");
-    doc.text("Départ:", 14, y);
-    doc.setFont("helvetica", "normal");
-    doc.text(trip.origin, 50, y);
-    y += 8;
-
-    doc.setFont("helvetica", "bold");
-    doc.text("Arrivée:", 14, y);
-    doc.setFont("helvetica", "normal");
-    doc.text(trip.destination, 50, y);
-    y += 8;
-
-    doc.setFont("helvetica", "bold");
-    doc.text("Distance:", 14, y);
-    doc.setFont("helvetica", "normal");
-    doc.text(`${trip.distance} km`, 50, y);
-    y += 8;
-
-    doc.setFont("helvetica", "bold");
-    doc.text("Date Début:", 14, y);
-    doc.setFont("helvetica", "normal");
-    doc.text(new Date(trip.startDate).toLocaleString(), 50, y);
-    
-    y += 20;
-
-    // Logistics
-    doc.setFontSize(14);
-    doc.setTextColor(234, 88, 12);
-    doc.setFont("helvetica", "bold");
-    doc.text("Logistique & Véhicule", 14, y);
-    y += 10;
-
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
-    
-    doc.setFont("helvetica", "bold");
-    doc.text("Chauffeur:", 14, y);
-    doc.setFont("helvetica", "normal");
-    doc.text(driver ? `${driver.firstName} ${driver.lastName}` : 'N/A', 50, y);
-    y += 8;
-
-    doc.setFont("helvetica", "bold");
-    doc.text("Camion:", 14, y);
-    doc.setFont("helvetica", "normal");
-    doc.text(truck ? `${truck.brand} ${truck.model} (${truck.registrationNumber})` : 'N/A', 50, y);
-    y += 8;
-
-    if (trailer) {
-      doc.setFont("helvetica", "bold");
-      doc.text("Remorque:", 14, y);
-      doc.setFont("helvetica", "normal");
-      doc.text(`${trailer.type} (${trailer.registrationNumber})`, 50, y);
-      y += 8;
+  const handleDeleteConfirm = async () => {
+    console.log('Delete confirm clicked, tripId:', deleteConfirm.tripId);
+    if (!deleteConfirm.tripId) {
+      console.error('No tripId to delete');
+      return;
     }
+    
+    console.log('Dispatching deleteTrip for:', deleteConfirm.tripId);
+    const result = await dispatch(deleteTrip(deleteConfirm.tripId));
+    console.log('Delete result:', result);
+    
+    if (deleteTrip.fulfilled.match(result)) {
+      setToast({ message: 'Trajet supprimé avec succès', type: 'success' });
+    } else {
+      setToast({ message: 'Erreur lors de la suppression', type: 'error' });
+    }
+    
+    setDeleteConfirm({ isOpen: false, tripId: null });
+  };
 
-    // Footer
-    doc.setDrawColor(234, 88, 12);
-    doc.line(14, 280, 196, 280);
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text("TruckFlow Fleet Management System", 14, 285);
+  const handleEdit = (trip: any) => {
+    setEditingTrip(trip);
+    setFormData({
+      tripId: trip.tripId,
+      truckId: trip.truckId?._id || trip.truckId,
+      trailerId: trip.trailerId?._id || trip.trailerId || '',
+      chauffeurId: trip.chauffeurId?._id || trip.chauffeurId,
+      origin: trip.origin,
+      destination: trip.destination,
+      plannedDeparture: trip.plannedDeparture ? new Date(trip.plannedDeparture).toISOString().slice(0, 16) : '',
+      mileageStart: trip.mileageStart || 0,
+      notes: trip.notes || ''
+    });
+    setIsModalOpen(true);
+  };
 
-    doc.save(`Rapport_Trajet_${trip.id}.pdf`);
+  const handleAddNew = () => {
+    setEditingTrip(null);
+    const initialData = {
+      tripId: '',
+      truckId: '',
+      trailerId: '',
+      chauffeurId: '',
+      origin: '',
+      destination: '',
+      plannedDeparture: '',
+      mileageStart: 0,
+      notes: ''
+    };
+    setFormData(initialData);
+    setIsModalOpen(true);
+    
+    // Reset form after extension interference
+    setTimeout(() => {
+      setFormData(prev => ({
+        ...prev,
+        chauffeurId: prev.chauffeurId || ''
+      }));
+    }, 100);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    console.log('=== FORM SUBMIT DEBUG ===');
+    console.log('Full formData:', JSON.stringify(formData, null, 2));
+    console.log('chauffeurId value:', formData.chauffeurId);
+    console.log('chauffeurId type:', typeof formData.chauffeurId);
+    console.log('chauffeurId length:', formData.chauffeurId?.length);
+    console.log('Is valid ObjectId?', /^[0-9a-fA-F]{24}$/.test(formData.chauffeurId));
+    
+    // Validate required fields
+    if (!formData.tripId) {
+      setToast({ message: 'ID du trajet est requis', type: 'error' });
+      return;
+    }
+    if (!formData.truckId) {
+      setToast({ message: 'Veuillez sélectionner un camion', type: 'error' });
+      return;
+    }
+    if (!formData.chauffeurId) {
+      console.log('chauffeurId is empty/undefined');
+      setToast({ message: 'Veuillez sélectionner un chauffeur', type: 'error' });
+      return;
+    }
+    if (!formData.origin) {
+      setToast({ message: 'Origine est requise', type: 'error' });
+      return;
+    }
+    if (!formData.destination) {
+      setToast({ message: 'Destination est requise', type: 'error' });
+      return;
+    }
+    
+    // Validate MongoDB ObjectId format (24 hex characters)
+    const isValidObjectId = (id: string) => /^[0-9a-fA-F]{24}$/.test(id);
+    
+    if (!isValidObjectId(formData.truckId)) {
+      setToast({ message: 'ID camion invalide', type: 'error' });
+      console.error('Invalid truckId:', formData.truckId);
+      return;
+    }
+    
+    if (!isValidObjectId(formData.chauffeurId)) {
+      setToast({ message: 'ID chauffeur invalide', type: 'error' });
+      console.error('Invalid chauffeurId:', formData.chauffeurId);
+      return;
+    }
+    
+    if (formData.trailerId && !isValidObjectId(formData.trailerId)) {
+      setToast({ message: 'ID remorque invalide', type: 'error' });
+      console.error('Invalid trailerId:', formData.trailerId);
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    const cleanData = {
+      ...formData,
+      trailerId: formData.trailerId || null,
+      plannedDeparture: formData.plannedDeparture || undefined,
+      notes: formData.notes || undefined
+    };
+    
+    console.log('Submitting trip data:', cleanData);
+    
+    if (editingTrip) {
+      const result = await dispatch(updateTrip({ id: editingTrip.id, data: cleanData }));
+      if (updateTrip.fulfilled.match(result)) {
+        setIsModalOpen(false);
+        setToast({ message: 'Trajet modifié avec succès', type: 'success' });
+      } else {
+        const errorMsg = (result.payload as string) || 'Erreur lors de la modification';
+        setToast({ message: errorMsg, type: 'error' });
+      }
+    } else {
+      const result = await dispatch(createTrip(cleanData));
+      if (createTrip.fulfilled.match(result)) {
+        setIsModalOpen(false);
+        setToast({ message: 'Trajet créé avec succès', type: 'success' });
+      } else {
+        const errorMsg = (result.payload as string) || 'Erreur lors de la création';
+        setToast({ message: errorMsg, type: 'error' });
+      }
+    }
+    
+    setIsSubmitting(false);
+  };
+
+  const getTruckDisplay = (trip: any) => {
+    const truck = trip.truckId;
+    if (truck && typeof truck === 'object' && truck.registrationNumber) {
+      return `${truck.registrationNumber} - ${truck.brand} ${truck.model}`;
+    }
+    return 'N/A';
+  };
+
+  const getChauffeurDisplay = (trip: any) => {
+    const chauffeur = trip.chauffeurId;
+    if (chauffeur && typeof chauffeur === 'object' && chauffeur.firstName) {
+      return `${chauffeur.firstName} ${chauffeur.lastName}`;
+    }
+    return 'N/A';
   };
 
   return (
-    <div className="space-y-6">
+    <>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+      <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-white">
-          {user?.role === 'chauffeur' ? 'Mes Trajets' : 'Gestion des Trajets'}
-        </h1>
-        {user?.role === 'admin' && (
-          <Button icon={<Plus size={18} />}>Nouveau Trajet</Button>
-        )}
+        <h1 className="text-2xl font-bold text-white">Gestion des Trajets</h1>
+        <Button onClick={handleAddNew} icon={<Plus size={18} />}>
+          Nouveau Trajet
+        </Button>
       </div>
 
-      <div className="bg-slate-900 p-2 rounded-xl border border-slate-800 shadow-sm max-w-md">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 h-4 w-4" />
-          <input
-            type="text"
-            placeholder="Rechercher destination..."
-            className="pl-10 pr-4 py-2 w-full bg-slate-950/50 border-none rounded-lg text-slate-200 focus:ring-2 focus:ring-orange-500 placeholder-slate-600"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400">
+          {error}
+        </div>
+      )}
+
+      <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+        <div className="p-5 border-b border-slate-800 flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 h-5 w-5" />
+            <input
+              type="text"
+              placeholder="Rechercher par ID, origine ou destination..."
+              className="pl-10 pr-4 py-2.5 w-full bg-slate-950 border border-slate-700 rounded-xl text-slate-200 placeholder-slate-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <Button variant="outline" icon={<Filter size={18} />}>
+            Filtres
+          </Button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-800">
+            <thead className="bg-slate-900/50">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Trajet</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Camion</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Chauffeur</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Itinéraire</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Statut</th>
+                <th className="px-6 py-4 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-slate-900 divide-y divide-slate-800">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                    Chargement...
+                  </td>
+                </tr>
+              ) : filteredTrips.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                    Aucun trajet trouvé
+                  </td>
+                </tr>
+              ) : filteredTrips.map((trip) => (
+                <tr key={trip.id} className="hover:bg-slate-800/50 transition-colors group">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10 bg-slate-800 rounded-lg flex items-center justify-center text-slate-400">
+                            <MapPin size={20} />
+                        </div>
+                        <div className="ml-4">
+                            <div className="text-sm font-medium text-white">{trip.tripId}</div>
+                            <div className="text-xs text-slate-500">
+                              {trip.plannedDeparture ? new Date(trip.plannedDeparture).toLocaleDateString('fr-FR') : 'Non planifié'}
+                            </div>
+                        </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{getTruckDisplay(trip)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{getChauffeurDisplay(trip)}</td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-slate-300">
+                      <div className="flex items-center gap-1">
+                        <span className="text-green-400">●</span> {trip.origin}
+                      </div>
+                      <div className="flex items-center gap-1 mt-1">
+                        <span className="text-red-400">●</span> {trip.destination}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Badge variant={getStatusVariant(trip.status)}>{trip.status}</Badge>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => handleEdit(trip)} className="text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 p-2 rounded-lg transition-colors">
+                        <Edit size={16} />
+                      </button>
+                      <button onClick={() => handleDeleteClick(trip.id)} className="text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 p-2 rounded-lg transition-colors">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Grid of Trip Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {displayTrips.map((trip) => {
-            const driver = getDriver(trip.chauffeurId);
-            return (
-                <div key={trip.id} className="bg-slate-900 rounded-2xl border border-slate-800 shadow-xl hover:border-slate-700 hover:shadow-2xl transition-all group overflow-hidden flex flex-col">
-                    {/* Header */}
-                    <div className="p-5 border-b border-slate-800 bg-slate-900/50">
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="text-xs font-mono text-slate-500">#{trip.id.toUpperCase()}</span>
-                            <Badge variant={getStatusVariant(trip.status)}>{trip.status}</Badge>
-                        </div>
-                        <div className="flex items-center space-x-3 mt-3">
-                            {driver?.avatarUrl ? (
-                                <img src={driver.avatarUrl} alt="Driver" className="w-10 h-10 rounded-full border-2 border-slate-700" />
-                            ) : (
-                                <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border-2 border-slate-700">
-                                    <User size={16} className="text-slate-400" />
-                                </div>
-                            )}
-                            <div>
-                                <p className="text-sm font-medium text-white">{driver?.firstName} {driver?.lastName}</p>
-                                <p className="text-xs text-slate-500">Chauffeur</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {/* Route Graphic */}
-                    <div className="p-5 relative flex-1">
-                        {/* Connecting Line */}
-                        <div className="absolute top-8 bottom-12 left-[29px] w-0.5 bg-slate-700 group-hover:bg-slate-600 transition-colors"></div>
-
-                        <div className="space-y-6 relative z-10">
-                            <div className="flex items-start space-x-4">
-                                <div className="w-5 h-5 rounded-full border-4 border-blue-500 bg-slate-900 shrink-0 mt-0.5 shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
-                                <div>
-                                    <p className="text-xs text-slate-500 uppercase tracking-wide">Origine</p>
-                                    <p className="font-semibold text-slate-200 text-lg">{trip.origin}</p>
-                                    <p className="text-xs text-slate-500 mt-1">{new Date(trip.startDate).toLocaleDateString()} • 08:00</p>
-                                </div>
-                            </div>
-                            <div className="flex items-start space-x-4">
-                                <div className="w-5 h-5 rounded-full border-4 border-orange-500 bg-slate-900 shrink-0 mt-0.5 shadow-[0_0_10px_rgba(249,115,22,0.5)]"></div>
-                                <div>
-                                    <p className="text-xs text-slate-500 uppercase tracking-wide">Destination</p>
-                                    <p className="font-semibold text-slate-200 text-lg">{trip.destination}</p>
-                                    <p className="text-xs text-slate-500 mt-1">{trip.endDate ? new Date(trip.endDate).toLocaleDateString() : '--'} • --:--</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Footer Info */}
-                    <div className="bg-slate-950/50 px-5 py-4 border-t border-slate-800 flex justify-between items-center">
-                        <div className="flex items-center space-x-2 text-slate-400">
-                            <Truck size={16} />
-                            <span className="text-sm font-medium text-slate-300">{getTruckReg(trip.truckId)}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                             <span className="text-sm font-bold text-white">{trip.distance} km</span>
-                             <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="ml-2 !p-2 !h-8 w-8 !rounded-full flex items-center justify-center hover:!bg-orange-500 hover:!text-white hover:border-orange-500"
-                                onClick={() => setSelectedTrip(trip)}
-                                title="Voir détails"
-                             >
-                                <ArrowRight size={14} />
-                             </Button>
-                        </div>
-                    </div>
-                </div>
-            );
-        })}
-      </div>
-
-      {/* Trip Detail Modal */}
       <Modal
-        isOpen={!!selectedTrip}
-        onClose={() => setSelectedTrip(null)}
-        title="Détails du Trajet"
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingTrip ? "Modifier Trajet" : "Ajouter Trajet"}
       >
-        {selectedTrip && (
-            <div className="space-y-6">
-                <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
-                    <div className="flex justify-between items-start mb-4">
-                        <div>
-                            <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                                {selectedTrip.destination}
-                            </h3>
-                            <p className="text-slate-400 text-sm">Depuis {selectedTrip.origin}</p>
-                        </div>
-                        <Badge variant={getStatusVariant(selectedTrip.status)}>{selectedTrip.status}</Badge>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 text-sm mt-4">
-                        <div className="bg-slate-900 p-3 rounded-lg">
-                            <p className="text-xs text-slate-500 mb-1 flex items-center"><Calendar size={12} className="mr-1"/> Départ</p>
-                            <p className="text-slate-200 font-medium">{new Date(selectedTrip.startDate).toLocaleString()}</p>
-                        </div>
-                        <div className="bg-slate-900 p-3 rounded-lg">
-                            <p className="text-xs text-slate-500 mb-1 flex items-center"><Truck size={12} className="mr-1"/> Distance</p>
-                            <p className="text-slate-200 font-medium">{selectedTrip.distance} km</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="space-y-3">
-                    <h4 className="text-sm font-medium text-slate-300 uppercase tracking-wider">Ressources Assignées</h4>
-                    
-                    <div className="flex items-center p-3 bg-slate-900 rounded-lg border border-slate-800">
-                        <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center mr-3">
-                             <User size={20} className="text-slate-400"/>
-                        </div>
-                        <div>
-                            <p className="text-xs text-slate-500">Chauffeur</p>
-                            <p className="text-sm text-white font-medium">
-                                {getDriver(selectedTrip.chauffeurId)?.firstName} {getDriver(selectedTrip.chauffeurId)?.lastName}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center p-3 bg-slate-900 rounded-lg border border-slate-800">
-                        <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center mr-3">
-                             <Truck size={20} className="text-slate-400"/>
-                        </div>
-                        <div>
-                            <p className="text-xs text-slate-500">Camion</p>
-                            <p className="text-sm text-white font-medium">
-                                {getTruckReg(selectedTrip.truckId)}
-                            </p>
-                        </div>
-                    </div>
-
-                    {selectedTrip.trailerId && (
-                        <div className="flex items-center p-3 bg-slate-900 rounded-lg border border-slate-800">
-                            <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center mr-3">
-                                <Truck size={20} className="text-slate-400"/>
-                            </div>
-                            <div>
-                                <p className="text-xs text-slate-500">Remorque</p>
-                                <p className="text-sm text-white font-medium">
-                                    {getTrailer(selectedTrip.trailerId)?.registrationNumber} ({getTrailer(selectedTrip.trailerId)?.type})
-                                </p>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <div className="pt-4 mt-2 border-t border-slate-700">
-                    <Button 
-                        onClick={() => handleDownloadPdf(selectedTrip)} 
-                        className="w-full flex items-center justify-center"
+        <form className="space-y-4" onSubmit={handleSubmit}>
+            <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">ID du trajet</label>
+                <input 
+                  type="text" 
+                  value={formData.tripId} 
+                  onChange={(e) => setFormData({...formData, tripId: e.target.value.toUpperCase()})}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white p-2.5 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none uppercase" 
+                  placeholder="Ex: TRP001"
+                  required 
+                  disabled={!!editingTrip}
+                />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">Camion</label>
+                    <select 
+                      value={formData.truckId} 
+                      onChange={(e) => setFormData({...formData, truckId: e.target.value})}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white p-2.5 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none"
+                      required
                     >
-                        <Download className="mr-2 h-5 w-5" />
-                        Télécharger le Rapport (PDF)
-                    </Button>
+                        <option value="">-- Sélectionner --</option>
+                        {trucks.map(truck => (
+                          <option key={truck.id} value={truck.id}>{truck.registrationNumber} - {truck.brand}</option>
+                        ))}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">Remorque (optionnel)</label>
+                    <select 
+                      value={formData.trailerId} 
+                      onChange={(e) => setFormData({...formData, trailerId: e.target.value})}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white p-2.5 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none"
+                    >
+                        <option value="">-- Aucune --</option>
+                        {trailers.map(trailer => (
+                          <option key={trailer.id} value={trailer.id}>{trailer.registrationNumber}</option>
+                        ))}
+                    </select>
                 </div>
             </div>
-        )}
+            <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Chauffeur</label>
+                <select 
+                  value={formData.chauffeurId || ''} 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    console.log('Chauffeur selected:', val);
+                    
+                    // Check if it's a valid ObjectId
+                    if (/^[0-9a-fA-F]{24}$/.test(val)) {
+                      // Normal case: valid ObjectId
+                      setFormData(prev => ({...prev, chauffeurId: val}));
+                    } else {
+                      // Extension interference: find user by name
+                      const matchedUser = users.find(u => 
+                        val.includes(u.firstName) && val.includes(u.lastName)
+                      );
+                      if (matchedUser?._id) {
+                        console.log('Using matched user _id:', matchedUser._id);
+                        setFormData(prev => ({...prev, chauffeurId: matchedUser._id}));
+                      } else {
+                        console.error('Could not find user for:', val);
+                        setFormData(prev => ({...prev, chauffeurId: val}));
+                      }
+                    }
+                  }}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white p-2.5 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none"
+                  required
+                >
+                    <option value="">-- Sélectionner --</option>
+                    {users.filter(u => u.role === 'chauffeur' || u.role === 'admin').map((user, index) => (
+                      <option key={user.id || index} value={user.id}>
+                        {user.firstName} {user.lastName} ({user.role})
+                      </option>
+                    ))}
+                </select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">Origine</label>
+                    <input 
+                      type="text" 
+                      value={formData.origin} 
+                      onChange={(e) => setFormData({...formData, origin: e.target.value})}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white p-2.5 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none" 
+                      placeholder="Ex: Paris"
+                      required 
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">Destination</label>
+                    <input 
+                      type="text" 
+                      value={formData.destination} 
+                      onChange={(e) => setFormData({...formData, destination: e.target.value})}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white p-2.5 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none" 
+                      placeholder="Ex: Lyon"
+                      required 
+                    />
+                </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">Départ prévu</label>
+                    <input 
+                      type="datetime-local" 
+                      value={formData.plannedDeparture} 
+                      onChange={(e) => setFormData({...formData, plannedDeparture: e.target.value})}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white p-2.5 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none" 
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">Kilométrage départ</label>
+                    <input 
+                      type="number" 
+                      min="0"
+                      value={formData.mileageStart} 
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (!isNaN(val)) setFormData({...formData, mileageStart: val});
+                      }}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white p-2.5 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none" 
+                    />
+                </div>
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Notes (optionnel)</label>
+                <textarea 
+                  value={formData.notes} 
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white p-2.5 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none" 
+                  rows={3}
+                  placeholder="Informations supplémentaires..."
+                />
+            </div>
+            <div className="mt-6 flex space-x-3">
+                <Button type="button" variant="outline" className="flex-1 justify-center" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>Annuler</Button>
+                <Button type="submit" className="flex-1 justify-center" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Enregistrement...
+                    </>
+                  ) : 'Sauvegarder'}
+                </Button>
+            </div>
+        </form>
       </Modal>
+
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        title="Supprimer le trajet"
+        message="Êtes-vous sûr de vouloir supprimer ce trajet ? Cette action est irréversible."
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteConfirm({ isOpen: false, tripId: null })}
+        isLoading={isLoading}
+      />
     </div>
+    </>
   );
 };

@@ -128,6 +128,35 @@ class ApiService {
     });
   }
 
+  // Tires
+  async getTires() {
+    return this.request<any[]>('/tires');
+  }
+
+  async getTire(id: string) {
+    return this.request<any>(`/tires/${id}`);
+  }
+
+  async createTire(data: any) {
+    return this.request<any>('/tires', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateTire(id: string, data: any) {
+    return this.request<any>(`/tires/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteTire(id: string) {
+    return this.request<any>(`/tires/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Trailers
   async getTrailers() {
     return this.request<any[]>('/trailers');
@@ -182,6 +211,64 @@ class ApiService {
 
   async deleteTrip(id: string) {
     return this.request<any>(`/trips/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Users
+  async getUsers() {
+    return this.request<any[]>('/users');
+  }
+
+  async getUser(id: string) {
+    return this.request<any>(`/users/${id}`);
+  }
+
+  async createUser(data: any) {
+    return this.request<any>('/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateUser(id: string, data: any) {
+    return this.request<any>(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteUser(id: string) {
+    return this.request<any>(`/users/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Maintenance
+  async getMaintenance() {
+    return this.request<any[]>('/maintenance');
+  }
+
+  async getMaintenanceRecord(id: string) {
+    return this.request<any>(`/maintenance/${id}`);
+  }
+
+  async createMaintenance(data: any) {
+    return this.request<any>('/maintenance', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateMaintenance(id: string, data: any) {
+    return this.request<any>(`/maintenance/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteMaintenance(id: string) {
+    return this.request<any>(`/maintenance/${id}`, {
       method: 'DELETE',
     });
   }

@@ -7,7 +7,10 @@ import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { TrucksPage } from './pages/TrucksPage';
 import { TrailersPage } from './pages/TrailersPage';
+import { TiresPage } from './pages/TiresPage';
 import { TripsPage } from './pages/TripsPage';
+import { UsersPage } from './pages/UsersPage';
+import { MaintenancePage } from './pages/MaintenancePage';
 import { Login } from './pages/Login';
 
 // Protected Route Wrapper
@@ -34,8 +37,10 @@ const AppRoutes = () => {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/trucks" element={<TrucksPage />} />
                 <Route path="/trailers" element={<TrailersPage />} />
+                <Route path="/tires" element={<TiresPage />} />
                 <Route path="/trips" element={<TripsPage />} />
-                <Route path="/maintenance" element={<div className="p-8">Maintenance Page Placeholder</div>} />
+                <Route path="/users" element={<UsersPage />} />
+                <Route path="/maintenance" element={<MaintenancePage />} />
                 <Route path="/reports" element={<div className="p-8">Reports Page Placeholder</div>} />
             </Route>
 
