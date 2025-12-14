@@ -11,6 +11,8 @@ import { TiresPage } from './pages/TiresPage';
 import { TripsPage } from './pages/TripsPage';
 import { UsersPage } from './pages/UsersPage';
 import { MaintenancePage } from './pages/MaintenancePage';
+import { FuelPage } from './pages/FuelPage';
+import { NotificationsPage } from './pages/NotificationsPage';
 import { Login } from './pages/Login';
 
 // Protected Route Wrapper
@@ -41,6 +43,8 @@ const AppRoutes = () => {
                 <Route path="/trips" element={<TripsPage />} />
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/maintenance" element={<MaintenancePage />} />
+                <Route path="/fuel" element={<FuelPage />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/reports" element={<div className="p-8">Reports Page Placeholder</div>} />
             </Route>
 

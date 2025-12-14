@@ -3,6 +3,7 @@ import Maintenance from '../models/Maintenance.js';
 import Truck from '../models/Truck.js';
 import Trailer from '../models/Trailer.js';
 import { ApiError } from '../middleware/errorMiddleware.js';
+import { notifyMaintenanceDue } from '../services/notificationService.js';
 
 export const getMaintenanceRecords = asyncHandler(async (req, res) => {
   const { vehicleType, vehicleId } = req.query;
@@ -49,6 +50,9 @@ export const createMaintenanceRecord = asyncHandler(async (req, res) => {
   });
 
   await record.populate('vehicleId', 'registrationNumber brand model type');
+
+  // Send notification
+  await notifyMaintenanceDue(record._id, vehicleType, vehicle.registrationNumber);
 
   res.status(201).json({ success: true, data: record });
 });

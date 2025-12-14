@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -6,6 +6,7 @@ import {
   Container,
   Map, 
   Wrench, 
+  Fuel,
   LogOut, 
   Menu, 
   X,
@@ -15,12 +16,24 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { fetchNotifications } from '../store/slices/notificationsSlice';
 
 export const Layout: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useAppDispatch();
+  const unreadCount = useAppSelector(state => state.notifications.unreadCount);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    dispatch(fetchNotifications());
+    const interval = setInterval(() => {
+      dispatch(fetchNotifications());
+    }, 60000); // Refresh every minute
+    return () => clearInterval(interval);
+  }, [dispatch]);
 
   const handleLogout = () => {
     logout();
@@ -33,6 +46,7 @@ export const Layout: React.FC = () => {
     { name: 'Remorques', path: '/trailers', icon: <Container size={20} />, roles: [UserRole.ADMIN] },
     { name: 'Pneus', path: '/tires', icon: <Container size={20} />, roles: [UserRole.ADMIN] },
     { name: 'Trajets', path: '/trips', icon: <Map size={20} />, roles: [UserRole.ADMIN, UserRole.CHAUFFEUR] },
+    { name: 'Carburant', path: '/fuel', icon: <Fuel size={20} />, roles: [UserRole.ADMIN] },
     { name: 'Utilisateurs', path: '/users', icon: <UserIcon size={20} />, roles: [UserRole.ADMIN] },
     { name: 'Maintenance', path: '/maintenance', icon: <Wrench size={20} />, roles: [UserRole.ADMIN] },
   ];
@@ -133,9 +147,19 @@ export const Layout: React.FC = () => {
                 className="bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-full pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent w-64 placeholder-slate-500"
               />
             </div>
-            <button className="relative p-2 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition-colors">
+            <button 
+              onClick={() => navigate('/notifications')}
+              className="relative p-2 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition-colors"
+            >
               <Bell size={20} />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-orange-500 rounded-full border border-slate-900"></span>
+              {unreadCount > 0 && (
+                <>
+                  <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-orange-500 rounded-full border border-slate-900"></span>
+                  <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                </>
+              )}
             </button>
           </div>
         </header>

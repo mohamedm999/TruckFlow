@@ -9,7 +9,7 @@ import { ApiError } from '../middleware/errorMiddleware.js';
  * @access  Private
  */
 export const getTires = asyncHandler(async (req, res) => {
-  const tires = await Tire.find({});
+  const tires = await Tire.find({}).populate('vehicleId', 'registrationNumber brand model type');
   res.json({ success: true, data: tires });
 });
 
@@ -19,7 +19,7 @@ export const getTires = asyncHandler(async (req, res) => {
  * @access  Private
  */
 export const getTire = asyncHandler(async (req, res) => {
-  const tire = await Tire.findById(req.params.id);
+  const tire = await Tire.findById(req.params.id).populate('vehicleId', 'registrationNumber brand model type');
 
   if (tire) {
     res.json({ success: true, data: tire });
@@ -54,6 +54,7 @@ export const createTire = asyncHandler(async (req, res) => {
   });
 
   if (tire) {
+    await tire.populate('vehicleId', 'registrationNumber brand model type');
     res.status(201).json({
       success: true,
       data: tire
@@ -82,6 +83,7 @@ export const updateTire = asyncHandler(async (req, res) => {
     tire.wearLevel = req.body.wearLevel !== undefined ? req.body.wearLevel : tire.wearLevel;
 
     const updatedTire = await tire.save();
+    await updatedTire.populate('vehicleId', 'registrationNumber brand model type');
 
     res.json({
       success: true,

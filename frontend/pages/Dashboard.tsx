@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Truck, 
   Map, 
@@ -6,9 +6,8 @@ import {
   Fuel, 
   Calendar as CalendarIcon,
   CheckCircle2,
-  MoreHorizontal,
-  ArrowRight,
-  Wrench
+  Wrench,
+  Container
 } from 'lucide-react';
 import { 
   PieChart, 
@@ -22,8 +21,14 @@ import {
   CartesianGrid,
   Tooltip
 } from 'recharts';
-import { MOCK_TRUCKS, MOCK_MAINTENANCE } from '../constants';
 import { Button } from '../components/ui/Button';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { fetchTrucks } from '../store/slices/trucksSlice';
+import { fetchTrailers } from '../store/slices/trailersSlice';
+import { fetchTires } from '../store/slices/tiresSlice';
+import { fetchTrips } from '../store/slices/tripsSlice';
+import { fetchMaintenance } from '../store/slices/maintenanceSlice';
+import { fetchFuelRecords } from '../store/slices/fuelSlice';
 
 // Mock Data for Charts
 const TIRE_STATUS_DATA = [
@@ -129,6 +134,53 @@ const TireDonut = ({ percentage, label, color }: any) => {
 };
 
 export const Dashboard: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const trucks = useAppSelector(state => state.trucks.trucks);
+  const trailers = useAppSelector(state => state.trailers.trailers);
+  const tires = useAppSelector(state => state.tires.tires);
+  const trips = useAppSelector(state => state.trips.trips);
+  const maintenance = useAppSelector(state => state.maintenance.records);
+  const fuelRecords = useAppSelector(state => state.fuel.records);
+
+  useEffect(() => {
+    dispatch(fetchTrucks());
+    dispatch(fetchTrailers());
+    dispatch(fetchTires());
+    dispatch(fetchTrips());
+    dispatch(fetchMaintenance());
+    dispatch(fetchFuelRecords());
+  }, [dispatch]);
+
+  // Calculate stats
+  const activeTrucks = trucks.filter((t: any) => t.status === 'Active').length;
+  const activeTrips = trips.filter(t => t.status === 'InProgress' || t.status === 'Planned').length;
+  const upcomingMaintenance = maintenance.filter(m => !m.completedDate && new Date(m.scheduledDate) > new Date()).slice(0, 3);
+  const totalFuelCost = fuelRecords.reduce((sum, r) => sum + r.totalCost, 0);
+  
+  // Tire stats
+  const goodTires = tires.filter(t => t.wearLevel >= 70).length;
+  const warningTires = tires.filter(t => t.wearLevel >= 30 && t.wearLevel < 70).length;
+  const criticalTires = tires.filter(t => t.wearLevel < 30).length;
+
+  const TIRE_STATUS_DATA = [
+    { name: 'Good', value: goodTires, color: '#10b981' },
+    { name: 'Warning', value: warningTires, color: '#f59e0b' },
+    { name: 'Critical', value: criticalTires, color: '#ef4444' },
+  ];
+
+  // Fuel trend data (last 8 months)
+  const fuelTrendData = Array.from({ length: 8 }, (_, i) => {
+    const month = new Date();
+    month.setMonth(month.getMonth() - (7 - i));
+    const monthName = month.toLocaleDateString('fr-FR', { month: 'short' });
+    const monthRecords = fuelRecords.filter(r => {
+      const recordDate = new Date(r.date);
+      return recordDate.getMonth() === month.getMonth() && recordDate.getFullYear() === month.getFullYear();
+    });
+    const totalLiters = monthRecords.reduce((sum, r) => sum + r.liters, 0);
+    return { month: monthName, liters: Math.round(totalLiters) };
+  });
+
   return (
     <div className="space-y-6">
       
@@ -139,13 +191,13 @@ export const Dashboard: React.FC = () => {
         <div className="lg:col-span-5">
             <DashboardCard 
                 title={{ text: "Calendrier de Maintenance", icon: <CalendarIcon size={20} /> }}
-                action={<Button variant="outline" size="sm" className="text-xs">Voir Tout</Button>}
+                action={<Button variant="outline" className="text-xs px-3 py-1.5">Voir Tout</Button>}
                 className="h-full"
             >
                 <div className="mb-6 flex justify-between items-end">
                     <div>
-                        <p className="text-sm text-slate-400">Interventions ce mois</p>
-                        <p className="text-3xl font-bold text-white mt-1">14</p>
+                        <p className="text-sm text-slate-400">Interventions à venir</p>
+                        <p className="text-3xl font-bold text-white mt-1">{upcomingMaintenance.length}</p>
                     </div>
                     <div className="flex space-x-2 text-xs">
                         <span className="flex items-center"><span className="w-2 h-2 rounded-full bg-blue-400 mr-1"></span> Prévu</span>
@@ -188,23 +240,28 @@ export const Dashboard: React.FC = () => {
             action={<span className="text-xs text-slate-500 cursor-pointer hover:text-white transition-colors">Tout Afficher</span>}
         >
             <div className="space-y-4">
-                {MOCK_MAINTENANCE.slice(0, 3).map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-4 bg-slate-800/50 rounded-xl border border-slate-800 hover:border-slate-700 transition-colors group">
-                        <div className="flex items-center space-x-4">
-                            <div className={`p-3 rounded-lg ${item.status === 'Overdue' ? 'bg-red-500/20 text-red-500' : 'bg-blue-500/20 text-blue-500'}`}>
-                                <Wrench size={18} />
+                {upcomingMaintenance.length === 0 ? (
+                    <p className="text-center text-slate-500 py-8">Aucune maintenance à venir</p>
+                ) : upcomingMaintenance.map((item) => {
+                    const isOverdue = new Date(item.scheduledDate) < new Date();
+                    const vehicleName = item.vehicleId && typeof item.vehicleId === 'object' ? item.vehicleId.registrationNumber : 'N/A';
+                    return (
+                        <div key={item.id} className="flex items-center justify-between p-4 bg-slate-800/50 rounded-xl border border-slate-800 hover:border-slate-700 transition-colors group">
+                            <div className="flex items-center space-x-4">
+                                <div className={`p-3 rounded-lg ${isOverdue ? 'bg-red-500/20 text-red-500' : 'bg-blue-500/20 text-blue-500'}`}>
+                                    <Wrench size={18} />
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-semibold text-slate-200 group-hover:text-white transition-colors">{item.type}</h4>
+                                    <p className="text-xs text-slate-500 mt-0.5">{vehicleName} • {new Date(item.scheduledDate).toLocaleDateString('fr-FR')}</p>
+                                </div>
                             </div>
-                            <div>
-                                <h4 className="text-sm font-semibold text-slate-200 group-hover:text-white transition-colors">{item.description}</h4>
-                                <p className="text-xs text-slate-500 mt-0.5">{item.vehicleId} • {item.date}</p>
+                            <div className="flex items-center space-x-4">
+                                 <span className="text-sm font-bold text-slate-300">{item.cost.toFixed(2)} €</span>
                             </div>
                         </div>
-                        <div className="flex items-center space-x-4">
-                             <span className="text-sm font-bold text-slate-300">$ {item.cost}</span>
-                             <div className="h-4 w-4 rounded border border-slate-600 cursor-pointer hover:bg-orange-500 hover:border-orange-500 transition-colors"></div>
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </DashboardCard>
 
@@ -250,11 +307,63 @@ export const Dashboard: React.FC = () => {
         </DashboardCard>
       </div>
 
+      {/* Bottom Row: Stats Cards + Chart */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-400">Camions Actifs</p>
+              <p className="text-3xl font-bold text-white mt-2">{activeTrucks}</p>
+              <p className="text-xs text-slate-500 mt-1">sur {trucks.length} total</p>
+            </div>
+            <div className="p-3 bg-blue-500/20 rounded-lg">
+              <Truck size={24} className="text-blue-500" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-400">Trajets Actifs</p>
+              <p className="text-3xl font-bold text-white mt-2">{activeTrips}</p>
+              <p className="text-xs text-slate-500 mt-1">en cours/planifiés</p>
+            </div>
+            <div className="p-3 bg-green-500/20 rounded-lg">
+              <Map size={24} className="text-green-500" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-400">Remorques</p>
+              <p className="text-3xl font-bold text-white mt-2">{trailers.length}</p>
+              <p className="text-xs text-slate-500 mt-1">total</p>
+            </div>
+            <div className="p-3 bg-purple-500/20 rounded-lg">
+              <Container size={24} className="text-purple-500" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-400">Coût Carburant</p>
+              <p className="text-3xl font-bold text-white mt-2">{totalFuelCost.toFixed(0)} €</p>
+              <p className="text-xs text-slate-500 mt-1">total</p>
+            </div>
+            <div className="p-3 bg-orange-500/20 rounded-lg">
+              <Fuel size={24} className="text-orange-500" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Bottom Row: Large Chart */}
-      <DashboardCard title={{ text: "Projection d'Usure Globale", icon: <Fuel size={20} /> }}>
+      <DashboardCard title={{ text: "Consommation de Carburant", icon: <Fuel size={20} /> }}>
          <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={TIRE_WEAR_DATA}>
+              <AreaChart data={fuelTrendData}>
                 <defs>
                   <linearGradient id="colorWear" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3}/>
@@ -267,7 +376,7 @@ export const Dashboard: React.FC = () => {
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', color: '#fff' }}
                 />
-                <Area type="monotone" dataKey="wear" stroke="#0ea5e9" strokeWidth={3} fillOpacity={1} fill="url(#colorWear)" />
+                <Area type="monotone" dataKey="liters" stroke="#0ea5e9" strokeWidth={3} fillOpacity={1} fill="url(#colorWear)" />
               </AreaChart>
             </ResponsiveContainer>
          </div>

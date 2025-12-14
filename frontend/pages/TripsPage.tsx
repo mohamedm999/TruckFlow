@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Edit, Trash2, MapPin, Loader2 } from 'lucide-react';
+import { Plus, Search, Filter, Edit, Trash2, MapPin, Loader2, FileDown } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
@@ -135,7 +135,7 @@ export const TripsPage: React.FC = () => {
     
     // Reset form after extension interference
     setTimeout(() => {
-      setFormData(prev => ({
+      setFormData((prev: any) => ({
         ...prev,
         chauffeurId: prev.chauffeurId || ''
       }));
@@ -246,6 +246,34 @@ export const TripsPage: React.FC = () => {
     return 'N/A';
   };
 
+  const handleDownloadPDF = async (tripId: string) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/trips/${tripId}/pdf`, {
+        headers: {
+          'Authorization': `Bearer ${(api as any).getAccessToken()}`,
+        },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) throw new Error('Failed to download PDF');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `trip-${tripId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      setToast({ message: 'PDF téléchargé avec succès', type: 'success' });
+    } catch (error) {
+      console.error('PDF download error:', error);
+      setToast({ message: 'Erreur lors du téléchargement du PDF', type: 'error' });
+    }
+  };
+
   return (
     <>
       {toast && (
@@ -343,6 +371,9 @@ export const TripsPage: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => handleDownloadPDF(trip.id)} className="text-green-400 hover:text-green-300 bg-green-500/10 hover:bg-green-500/20 p-2 rounded-lg transition-colors" title="Télécharger PDF">
+                        <FileDown size={16} />
+                      </button>
                       <button onClick={() => handleEdit(trip)} className="text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 p-2 rounded-lg transition-colors">
                         <Edit size={16} />
                       </button>
@@ -416,7 +447,7 @@ export const TripsPage: React.FC = () => {
                     // Check if it's a valid ObjectId
                     if (/^[0-9a-fA-F]{24}$/.test(val)) {
                       // Normal case: valid ObjectId
-                      setFormData(prev => ({...prev, chauffeurId: val}));
+                      setFormData((prev: any) => ({...prev, chauffeurId: val}));
                     } else {
                       // Extension interference: find user by name
                       const matchedUser = users.find(u => 
@@ -424,10 +455,10 @@ export const TripsPage: React.FC = () => {
                       );
                       if (matchedUser?._id) {
                         console.log('Using matched user _id:', matchedUser._id);
-                        setFormData(prev => ({...prev, chauffeurId: matchedUser._id}));
+                        setFormData((prev: any) => ({...prev, chauffeurId: matchedUser._id}));
                       } else {
                         console.error('Could not find user for:', val);
-                        setFormData(prev => ({...prev, chauffeurId: val}));
+                        setFormData((prev: any) => ({...prev, chauffeurId: val}));
                       }
                     }
                   }}

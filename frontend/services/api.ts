@@ -272,6 +272,52 @@ class ApiService {
       method: 'DELETE',
     });
   }
+
+  // Fuel
+  async getFuelRecords() {
+    return this.request<any[]>('/fuel');
+  }
+
+  async getFuelRecord(id: string) {
+    return this.request<any>(`/fuel/${id}`);
+  }
+
+  async createFuelRecord(data: any) {
+    return this.request<any>('/fuel', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateFuelRecord(id: string, data: any) {
+    return this.request<any>(`/fuel/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteFuelRecord(id: string) {
+    return this.request<any>(`/fuel/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Notifications
+  async getNotifications() {
+    return this.request<any[]>('/notifications');
+  }
+
+  async markNotificationAsRead(id: string) {
+    return this.request<any>(`/notifications/${id}/read`, {
+      method: 'PUT',
+    });
+  }
+
+  async markAllNotificationsAsRead() {
+    return this.request<any>('/notifications/read-all', {
+      method: 'PUT',
+    });
+  }
 }
 
 export const api = new ApiService();

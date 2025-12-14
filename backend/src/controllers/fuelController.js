@@ -69,6 +69,9 @@ export const createFuelRecord = asyncHandler(async (req, res) => {
         await truckDoc.save();
     }
 
+    await record.populate('truck', 'registrationNumber brand model');
+    await record.populate('driver', 'firstName lastName');
+
     res.status(201).json({
       success: true,
       data: record
@@ -100,6 +103,8 @@ export const updateFuelRecord = asyncHandler(async (req, res) => {
         }
 
         const updatedRecord = await record.save();
+        await updatedRecord.populate('truck', 'registrationNumber brand model');
+        await updatedRecord.populate('driver', 'firstName lastName');
         res.json({ success: true, data: updatedRecord });
     } else {
         throw new ApiError(404, 'Fuel record not found');
