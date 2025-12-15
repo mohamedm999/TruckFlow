@@ -12,7 +12,9 @@ import {
   X,
   User as UserIcon,
   Bell,
-  Search
+  Search,
+  Circle,
+  CircleDot
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
@@ -42,11 +44,11 @@ export const Layout: React.FC = () => {
 
   const navItems = [
     { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} />, roles: [UserRole.ADMIN, UserRole.CHAUFFEUR] },
-    { name: 'Camions', path: '/trucks', icon: <Truck size={20} />, roles: [UserRole.ADMIN] },
-    { name: 'Remorques', path: '/trailers', icon: <Container size={20} />, roles: [UserRole.ADMIN] },
-    { name: 'Pneus', path: '/tires', icon: <Container size={20} />, roles: [UserRole.ADMIN] },
+    { name: 'Camions', path: '/trucks', icon: <Truck size={20} />, roles: [UserRole.ADMIN, UserRole.CHAUFFEUR] },
+    { name: 'Remorques', path: '/trailers', icon: <Container size={20} />, roles: [UserRole.ADMIN, UserRole.CHAUFFEUR] },
     { name: 'Trajets', path: '/trips', icon: <Map size={20} />, roles: [UserRole.ADMIN, UserRole.CHAUFFEUR] },
-    { name: 'Carburant', path: '/fuel', icon: <Fuel size={20} />, roles: [UserRole.ADMIN] },
+    { name: 'Carburant', path: '/fuel', icon: <Fuel size={20} />, roles: [UserRole.ADMIN, UserRole.CHAUFFEUR] },
+    { name: 'Pneus', path: '/tires', icon: <CircleDot size={20} />, roles: [UserRole.ADMIN] },
     { name: 'Utilisateurs', path: '/users', icon: <UserIcon size={20} />, roles: [UserRole.ADMIN] },
     { name: 'Maintenance', path: '/maintenance', icon: <Wrench size={20} />, roles: [UserRole.ADMIN] },
   ];

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Edit, Trash2, MapPin, Loader2, FileDown } from 'lucide-react';
+import { Plus, Search, Filter, Edit, Trash2, MapPin, Loader2, FileDown, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
@@ -10,9 +11,13 @@ import { fetchTrips, createTrip, updateTrip, deleteTrip } from '../store/slices/
 import { fetchTrucks } from '../store/slices/trucksSlice';
 import { fetchTrailers } from '../store/slices/trailersSlice';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { UserRole } from '../types';
 
 export const TripsPage: React.FC = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const trips = useAppSelector(state => state.trips.trips);
   const trucks = useAppSelector(state => state.trucks.trucks);
   const trailers = useAppSelector(state => state.trailers.trailers);
@@ -42,21 +47,18 @@ export const TripsPage: React.FC = () => {
     dispatch(fetchTrips());
     dispatch(fetchTrucks());
     dispatch(fetchTrailers());
-    loadUsers();
-  }, [dispatch]);
+    if (user?.role === UserRole.ADMIN) {
+      loadUsers();
+    }
+  }, [dispatch, user?.role]);
 
   const loadUsers = async () => {
     try {
       const response = await api.getUsers();
-      console.log('RAW API RESPONSE:', response);
       const userData = response.data || [];
-      console.log('Loaded users:', userData);
-      console.log('First user:', JSON.stringify(userData[0], null, 2));
-      console.log('First user keys:', Object.keys(userData[0] || {}));
       setUsers(userData);
     } catch (err) {
       console.error('Failed to load users:', err);
-      setToast({ message: 'Erreur lors du chargement des utilisateurs', type: 'error' });
     }
   };
 
@@ -70,7 +72,17 @@ export const TripsPage: React.FC = () => {
     }
   };
 
-  const filteredTrips = trips.filter(trip => 
+  // Filter trips based on user role
+  const userTrips = user?.role === UserRole.CHAUFFEUR 
+    ? trips.filter(trip => {
+        const chauffeurId = trip.chauffeurId && typeof trip.chauffeurId === 'object' 
+          ? (trip.chauffeurId as any).id || (trip.chauffeurId as any)._id 
+          : trip.chauffeurId;
+        return chauffeurId === user?.id;
+      })
+    : trips;
+
+  const filteredTrips = userTrips.filter(trip => 
     trip.tripId.toLowerCase().includes(searchTerm.toLowerCase()) ||
     trip.origin.toLowerCase().includes(searchTerm.toLowerCase()) ||
     trip.destination.toLowerCase().includes(searchTerm.toLowerCase())
@@ -285,10 +297,14 @@ export const TripsPage: React.FC = () => {
       )}
       <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-white">Gestion des Trajets</h1>
-        <Button onClick={handleAddNew} icon={<Plus size={18} />}>
-          Nouveau Trajet
-        </Button>
+        <h1 className="text-2xl font-bold text-white">
+          {user?.role === UserRole.CHAUFFEUR ? 'Mes Trajets' : 'Gestion des Trajets'}
+        </h1>
+        {user?.role === UserRole.ADMIN && (
+          <Button onClick={handleAddNew} icon={<Plus size={18} />}>
+            Nouveau Trajet
+          </Button>
+        )}
       </div>
 
       {error && (
@@ -371,15 +387,24 @@ export const TripsPage: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {user?.role === UserRole.CHAUFFEUR && (
+                        <button onClick={() => navigate(`/trips/${trip.id}`)} className="text-purple-400 hover:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 p-2 rounded-lg transition-colors" title="Voir détails">
+                          <Eye size={16} />
+                        </button>
+                      )}
                       <button onClick={() => handleDownloadPDF(trip.id)} className="text-green-400 hover:text-green-300 bg-green-500/10 hover:bg-green-500/20 p-2 rounded-lg transition-colors" title="Télécharger PDF">
                         <FileDown size={16} />
                       </button>
-                      <button onClick={() => handleEdit(trip)} className="text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 p-2 rounded-lg transition-colors">
-                        <Edit size={16} />
-                      </button>
-                      <button onClick={() => handleDeleteClick(trip.id)} className="text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 p-2 rounded-lg transition-colors">
-                        <Trash2 size={16} />
-                      </button>
+                      {user?.role === UserRole.ADMIN && (
+                        <>
+                          <button onClick={() => handleEdit(trip)} className="text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 p-2 rounded-lg transition-colors">
+                            <Edit size={16} />
+                          </button>
+                          <button onClick={() => handleDeleteClick(trip.id)} className="text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 p-2 rounded-lg transition-colors">
+                            <Trash2 size={16} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>

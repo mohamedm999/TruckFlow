@@ -7,10 +7,14 @@ import { Toast } from '../components/ui/Toast';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchTires, createTire, updateTire, deleteTire } from '../store/slices/tiresSlice';
+import { fetchTrucks } from '../store/slices/trucksSlice';
+import { fetchTrailers } from '../store/slices/trailersSlice';
 
 export const TiresPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const tires = useAppSelector(state => state.tires.tires);
+  const trucks = useAppSelector(state => state.trucks.trucks);
+  const trailers = useAppSelector(state => state.trailers.trailers);
   const isLoading = useAppSelector(state => state.tires.isLoading);
   const error = useAppSelector(state => state.tires.error);
   const [searchTerm, setSearchTerm] = useState('');
@@ -32,6 +36,8 @@ export const TiresPage: React.FC = () => {
 
   useEffect(() => {
     dispatch(fetchTires());
+    dispatch(fetchTrucks());
+    dispatch(fetchTrailers());
   }, [dispatch]);
 
   const getStatusVariant = (status: string) => {
@@ -316,24 +322,26 @@ export const TiresPage: React.FC = () => {
                     />
                 </div>
             </div>
+            <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Statut</label>
+                <select 
+                  value={formData.status} 
+                  onChange={(e) => setFormData({...formData, status: e.target.value})}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white p-2.5 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none"
+                >
+                    <option value="Active">Active</option>
+                    <option value="InStorage">En Stock</option>
+                    <option value="Scrapped">Mis au rebut</option>
+                </select>
+            </div>
             <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">Statut</label>
-                    <select 
-                      value={formData.status} 
-                      onChange={(e) => setFormData({...formData, status: e.target.value})}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white p-2.5 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none"
-                    >
-                        <option value="Active">Active</option>
-                        <option value="InStorage">En Stock</option>
-                        <option value="Scrapped">Mis au rebut</option>
-                    </select>
-                </div>
                 <div>
                     <label className="block text-sm font-medium text-slate-300 mb-1">Type de véhicule (optionnel)</label>
                     <select 
                       value={formData.vehicleType} 
-                      onChange={(e) => setFormData({...formData, vehicleType: e.target.value})}
+                      onChange={(e) => {
+                        setFormData({...formData, vehicleType: e.target.value, vehicleId: ''});
+                      }}
                       className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white p-2.5 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none"
                     >
                         <option value="">-- Aucun --</option>
@@ -341,6 +349,28 @@ export const TiresPage: React.FC = () => {
                         <option value="Trailer">Remorque</option>
                     </select>
                 </div>
+                {formData.vehicleType && (
+                  <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-1">Véhicule</label>
+                      <select 
+                        value={formData.vehicleId} 
+                        onChange={(e) => setFormData({...formData, vehicleId: e.target.value})}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-lg text-white p-2.5 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none"
+                      >
+                          <option value="">-- Sélectionner --</option>
+                          {formData.vehicleType === 'Truck' && trucks.map(truck => (
+                            <option key={truck.id} value={truck.id}>
+                              {truck.registrationNumber} - {truck.brand}
+                            </option>
+                          ))}
+                          {formData.vehicleType === 'Trailer' && trailers.map(trailer => (
+                            <option key={trailer.id} value={trailer.id}>
+                              {trailer.registrationNumber} - {trailer.type}
+                            </option>
+                          ))}
+                      </select>
+                  </div>
+                )}
             </div>
             <div className="mt-6 flex space-x-3">
                 <Button type="button" variant="outline" className="flex-1 justify-center" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>Annuler</Button>

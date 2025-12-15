@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, Edit, Trash2, Truck as TruckIcon, Loader2 } from 'lucide-react';
-import { Truck, TruckStatus } from '../types';
+import { Truck, TruckStatus, UserRole } from '../types';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
@@ -8,9 +8,11 @@ import { Toast } from '../components/ui/Toast';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchTrucks, createTruck, updateTruck, deleteTruck } from '../store/slices/trucksSlice';
+import { useAuth } from '../context/AuthContext';
 
 export const TrucksPage: React.FC = () => {
   const dispatch = useAppDispatch();
+  const { user } = useAuth();
   const trucks = useAppSelector(state => state.trucks.trucks);
   const isLoading = useAppSelector(state => state.trucks.isLoading);
   const error = useAppSelector(state => state.trucks.error);
@@ -127,9 +129,11 @@ export const TrucksPage: React.FC = () => {
       <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-white">Gestion de Flotte</h1>
-        <Button onClick={handleAddNew} icon={<Plus size={18} />}>
-          Nouveau Camion
-        </Button>
+        {user?.role === UserRole.ADMIN && (
+          <Button onClick={handleAddNew} icon={<Plus size={18} />}>
+            Nouveau Camion
+          </Button>
+        )}
       </div>
 
       {error && (
@@ -202,14 +206,16 @@ export const TrucksPage: React.FC = () => {
                     <Badge variant={getStatusVariant(truck.status)}>{truck.status}</Badge>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleEdit(truck)} className="text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 p-2 rounded-lg transition-colors">
-                        <Edit size={16} />
-                      </button>
-                      <button onClick={() => handleDeleteClick(truck.id)} className="text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 p-2 rounded-lg transition-colors">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+                    {user?.role === UserRole.ADMIN && (
+                      <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => handleEdit(truck)} className="text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 p-2 rounded-lg transition-colors">
+                          <Edit size={16} />
+                        </button>
+                        <button onClick={() => handleDeleteClick(truck.id)} className="text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 p-2 rounded-lg transition-colors">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

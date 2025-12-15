@@ -215,6 +215,20 @@ class ApiService {
     });
   }
 
+  async updateTripStatus(id: string, data: { status: string; mileageEnd?: number }) {
+    return this.request<any>(`/trips/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateTripMileage(id: string, data: { mileageStart?: number; mileageEnd?: number }) {
+    return this.request<any>(`/trips/${id}/mileage`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
   // Users
   async getUsers() {
     return this.request<any[]>('/users');

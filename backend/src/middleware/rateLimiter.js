@@ -1,10 +1,5 @@
 import rateLimit from 'express-rate-limit';
-import { ApiError } from './errorMiddleware.js';
 
-/**
- * General API rate limiter
- * Limits all API requests
- */
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10000, // High limit for development
@@ -16,10 +11,6 @@ export const apiLimiter = rateLimit({
   legacyHeaders: false
 });
 
-/**
- * Strict rate limiter for auth endpoints
- * Protects against brute force attacks
- */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10000, // High limit for development
@@ -32,9 +23,6 @@ export const authLimiter = rateLimit({
   skipSuccessfulRequests: true // Don't count successful logins
 });
 
-/**
- * Rate limiter for password reset/change
- */
 export const passwordLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 1000, // High limit for development

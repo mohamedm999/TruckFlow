@@ -7,9 +7,12 @@ import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchFuelRecords, createFuelRecord, updateFuelRecord, deleteFuelRecord } from '../store/slices/fuelSlice';
 import { fetchTrucks } from '../store/slices/trucksSlice';
+import { useAuth } from '../context/AuthContext';
+import { UserRole } from '../types';
 
 export const FuelPage: React.FC = () => {
   const dispatch = useAppDispatch();
+  const { user } = useAuth();
   const records = useAppSelector(state => state.fuel.records);
   const trucks = useAppSelector(state => state.trucks.trucks);
   const isLoading = useAppSelector(state => state.fuel.isLoading);
@@ -237,14 +240,16 @@ export const FuelPage: React.FC = () => {
                       {record.totalCost.toFixed(2)} €
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => handleEdit(record)} className="text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 p-2 rounded-lg transition-colors">
-                          <Edit size={16} />
-                        </button>
-                        <button onClick={() => handleDeleteClick(record.id)} className="text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 p-2 rounded-lg transition-colors">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
+                      {user?.role === UserRole.ADMIN && (
+                        <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => handleEdit(record)} className="text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 p-2 rounded-lg transition-colors">
+                            <Edit size={16} />
+                          </button>
+                          <button onClick={() => handleDeleteClick(record.id)} className="text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 p-2 rounded-lg transition-colors">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

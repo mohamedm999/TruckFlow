@@ -3,21 +3,11 @@ import asyncHandler from 'express-async-handler';
 import Tire from '../models/Tire.js';
 import { ApiError } from '../middleware/errorMiddleware.js';
 
-/**
- * @desc    Get all tires
- * @route   GET /api/tires
- * @access  Private
- */
 export const getTires = asyncHandler(async (req, res) => {
   const tires = await Tire.find({}).populate('vehicleId', 'registrationNumber brand model type');
   res.json({ success: true, data: tires });
 });
 
-/**
- * @desc    Get single tire
- * @route   GET /api/tires/:id
- * @access  Private
- */
 export const getTire = asyncHandler(async (req, res) => {
   const tire = await Tire.findById(req.params.id).populate('vehicleId', 'registrationNumber brand model type');
 
@@ -28,11 +18,7 @@ export const getTire = asyncHandler(async (req, res) => {
   }
 });
 
-/**
- * @desc    Create a tire
- * @route   POST /api/tires
- * @access  Private/Admin
- */
+
 export const createTire = asyncHandler(async (req, res) => {
   const { serialNumber, brand, size, status, vehicleType, vehicleId, mileageAtInstall, wearLevel } = req.body;
 
@@ -64,11 +50,6 @@ export const createTire = asyncHandler(async (req, res) => {
   }
 });
 
-/**
- * @desc    Update a tire
- * @route   PUT /api/tires/:id
- * @access  Private/Admin
- */
 export const updateTire = asyncHandler(async (req, res) => {
   const tire = await Tire.findById(req.params.id);
 
@@ -94,11 +75,6 @@ export const updateTire = asyncHandler(async (req, res) => {
   }
 });
 
-/**
- * @desc    Delete a tire
- * @route   DELETE /api/tires/:id
- * @access  Private/Admin
- */
 export const deleteTire = asyncHandler(async (req, res) => {
   const tire = await Tire.findById(req.params.id);
 

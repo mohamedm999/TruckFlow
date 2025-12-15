@@ -23,6 +23,9 @@ import {
 } from 'recharts';
 import { Button } from '../components/ui/Button';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { useAuth } from '../context/AuthContext';
+import { UserRole } from '../types';
+import { ChauffeurDashboard } from './ChauffeurDashboard';
 import { fetchTrucks } from '../store/slices/trucksSlice';
 import { fetchTrailers } from '../store/slices/trailersSlice';
 import { fetchTires } from '../store/slices/tiresSlice';
@@ -134,7 +137,14 @@ const TireDonut = ({ percentage, label, color }: any) => {
 };
 
 export const Dashboard: React.FC = () => {
+  const { user } = useAuth();
   const dispatch = useAppDispatch();
+
+  // Show chauffeur dashboard for drivers
+  if (user?.role === UserRole.CHAUFFEUR) {
+    return <ChauffeurDashboard />;
+  }
+
   const trucks = useAppSelector(state => state.trucks.trucks);
   const trailers = useAppSelector(state => state.trailers.trailers);
   const tires = useAppSelector(state => state.tires.tires);

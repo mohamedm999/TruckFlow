@@ -7,9 +7,12 @@ import { Toast } from '../components/ui/Toast';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { fetchTrailers, createTrailer, updateTrailer, deleteTrailer } from '../store/slices/trailersSlice';
+import { useAuth } from '../context/AuthContext';
+import { UserRole } from '../types';
 
 export const TrailersPage: React.FC = () => {
   const dispatch = useAppDispatch();
+  const { user } = useAuth();
   const trailers = useAppSelector(state => state.trailers.trailers);
   const isLoading = useAppSelector(state => state.trailers.isLoading);
   const error = useAppSelector(state => state.trailers.error);
@@ -119,9 +122,11 @@ export const TrailersPage: React.FC = () => {
       <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-white">Gestion des Remorques</h1>
-        <Button onClick={handleAddNew} icon={<Plus size={18} />}>
-          Nouvelle Remorque
-        </Button>
+        {user?.role === UserRole.ADMIN && (
+          <Button onClick={handleAddNew} icon={<Plus size={18} />}>
+            Nouvelle Remorque
+          </Button>
+        )}
       </div>
 
       {error && (
@@ -190,14 +195,16 @@ export const TrailersPage: React.FC = () => {
                     <Badge variant={getStatusVariant(trailer.status)}>{trailer.status}</Badge>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleEdit(trailer)} className="text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 p-2 rounded-lg transition-colors">
-                        <Edit size={16} />
-                      </button>
-                      <button onClick={() => handleDeleteClick(trailer.id)} className="text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 p-2 rounded-lg transition-colors">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+                    {user?.role === UserRole.ADMIN && (
+                      <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => handleEdit(trailer)} className="text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 p-2 rounded-lg transition-colors">
+                          <Edit size={16} />
+                        </button>
+                        <button onClick={() => handleDeleteClick(trailer.id)} className="text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 p-2 rounded-lg transition-colors">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

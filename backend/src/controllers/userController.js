@@ -3,12 +3,7 @@ import User from '../models/User.js';
 import { ApiError } from '../middleware/errorMiddleware.js';
 import { formatUserResponse } from '../utils/helpers.js';
 
-/**
- * @desc    Get all users
- * @route   GET /api/users
- * @query   role, isActive, search
- * @access  Private/Admin
- */
+
 export const getUsers = asyncHandler(async (req, res) => {
   const { role, isActive, search } = req.query;
   
@@ -33,11 +28,6 @@ export const getUsers = asyncHandler(async (req, res) => {
   });
 });
 
-/**
- * @desc    Get single user
- * @route   GET /api/users/:id
- * @access  Private/Admin
- */
 export const getUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
 
@@ -51,11 +41,6 @@ export const getUser = asyncHandler(async (req, res) => {
   });
 });
 
-/**
- * @desc    Create user (admin creates chauffeurs)
- * @route   POST /api/users
- * @access  Private/Admin
- */
 export const createUser = asyncHandler(async (req, res) => {
   const { email, password, firstName, lastName, role, phone, licenseNumber } = req.body;
 
@@ -80,11 +65,6 @@ export const createUser = asyncHandler(async (req, res) => {
   });
 });
 
-/**
- * @desc    Update user
- * @route   PUT /api/users/:id
- * @access  Private/Admin
- */
 export const updateUser = asyncHandler(async (req, res) => {
   const { firstName, lastName, phone, licenseNumber, isActive, role } = req.body;
 
@@ -93,7 +73,6 @@ export const updateUser = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'User not found');
   }
 
-  // Update fields
   if (firstName) user.firstName = firstName;
   if (lastName) user.lastName = lastName;
   if (phone !== undefined) user.phone = phone;
@@ -109,11 +88,6 @@ export const updateUser = asyncHandler(async (req, res) => {
   });
 });
 
-/**
- * @desc    Delete user
- * @route   DELETE /api/users/:id
- * @access  Private/Admin
- */
 export const deleteUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
 

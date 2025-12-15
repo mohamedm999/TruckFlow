@@ -13,6 +13,10 @@ export const getTrips = asyncHandler(async (req, res) => {
     .populate('trailerId', 'registrationNumber type')
     .populate('chauffeurId', 'firstName lastName');
   res.json({ success: true, data: trips });
+
+  if(!trips){
+    throw new ApiError(404, 'No trips found');
+  }
 });
 
 export const getTrip = asyncHandler(async (req, res) => {
@@ -36,7 +40,6 @@ export const createTrip = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Truck not found');
   }
 
-  // Check truck availability
   if (plannedDeparture) {
     const conflictingTrip = await Trip.findOne({
       truckId,

@@ -3,21 +3,12 @@ import asyncHandler from 'express-async-handler';
 import Truck from '../models/Truck.js';
 import { ApiError } from '../middleware/errorMiddleware.js';
 
-/**
- * @desc    Get all trucks
- * @route   GET /api/trucks
- * @access  Private
- */
+
 export const getTrucks = asyncHandler(async (req, res) => {
   const trucks = await Truck.find({});
   res.json({ success: true, data: trucks });
 });
 
-/**
- * @desc    Get single truck
- * @route   GET /api/trucks/:id
- * @access  Private
- */
 export const getTruck = asyncHandler(async (req, res) => {
   const truck = await Truck.findById(req.params.id);
 
@@ -28,11 +19,6 @@ export const getTruck = asyncHandler(async (req, res) => {
   }
 });
 
-/**
- * @desc    Create a truck
- * @route   POST /api/trucks
- * @access  Private/Admin
- */
 export const createTruck = asyncHandler(async (req, res) => {
   const { registrationNumber, brand, model, year, status, currentOdometer } = req.body;
 
@@ -61,11 +47,7 @@ export const createTruck = asyncHandler(async (req, res) => {
   }
 });
 
-/**
- * @desc    Update a truck
- * @route   PUT /api/trucks/:id
- * @access  Private/Admin
- */
+
 export const updateTruck = asyncHandler(async (req, res) => {
   const truck = await Truck.findById(req.params.id);
 
@@ -91,11 +73,6 @@ export const updateTruck = asyncHandler(async (req, res) => {
   }
 });
 
-/**
- * @desc    Delete a truck
- * @route   DELETE /api/trucks/:id
- * @access  Private/Admin
- */
 export const deleteTruck = asyncHandler(async (req, res) => {
   const truck = await Truck.findById(req.params.id);
 

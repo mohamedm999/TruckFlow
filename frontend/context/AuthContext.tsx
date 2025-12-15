@@ -29,7 +29,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           const userResponse = await api.getMe();
           if (userResponse.success && userResponse.data) {
             setUser({
-              id: userResponse.data._id,
+              id: userResponse.data.id,
               email: userResponse.data.email,
               firstName: userResponse.data.firstName,
               lastName: userResponse.data.lastName,
@@ -73,7 +73,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (response.success && response.data) {
         const userData = response.data.user;
         setUser({
-          id: userData._id,
+          id: userData.id,
           email: userData.email,
           firstName: userData.firstName,
           lastName: userData.lastName,

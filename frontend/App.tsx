@@ -9,6 +9,7 @@ import { TrucksPage } from './pages/TrucksPage';
 import { TrailersPage } from './pages/TrailersPage';
 import { TiresPage } from './pages/TiresPage';
 import { TripsPage } from './pages/TripsPage';
+import { TripDetailPage } from './pages/TripDetailPage';
 import { UsersPage } from './pages/UsersPage';
 import { MaintenancePage } from './pages/MaintenancePage';
 import { FuelPage } from './pages/FuelPage';
@@ -41,6 +42,7 @@ const AppRoutes = () => {
                 <Route path="/trailers" element={<TrailersPage />} />
                 <Route path="/tires" element={<TiresPage />} />
                 <Route path="/trips" element={<TripsPage />} />
+                <Route path="/trips/:id" element={<TripDetailPage />} />
                 <Route path="/users" element={<UsersPage />} />
                 <Route path="/maintenance" element={<MaintenancePage />} />
                 <Route path="/fuel" element={<FuelPage />} />
