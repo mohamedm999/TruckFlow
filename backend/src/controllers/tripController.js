@@ -6,6 +6,7 @@ import User from '../models/User.js';
 import FuelRecord from '../models/FuelRecord.js';
 import { ApiError } from '../middleware/errorMiddleware.js';
 import { generateTripPDF } from '../services/pdfService.js';
+import { notifyTripAssigned, notifyTripCompleted } from '../services/notificationService.js';
 
 export const getTrips = asyncHandler(async (req, res) => {
   const trips = await Trip.find({})
@@ -79,6 +80,10 @@ export const createTrip = asyncHandler(async (req, res) => {
     await trip.populate('truckId', 'registrationNumber brand model');
     await trip.populate('trailerId', 'registrationNumber type');
     await trip.populate('chauffeurId', 'firstName lastName');
+
+    // Notify the chauffeur
+    await notifyTripAssigned(trip._id, trip.chauffeurId._id);
+
     res.status(201).json({ success: true, data: trip });
   } else {
     throw new ApiError(400, 'Invalid trip data');
@@ -147,7 +152,6 @@ export const updateTripStatus = asyncHandler(async (req, res) => {
 
   trip.status = status;
   
-  // Auto-track dates based on status
   if (status === 'InProgress' && !trip.actualDeparture) {
     trip.actualDeparture = Date.now();
   }
@@ -162,6 +166,11 @@ export const updateTripStatus = asyncHandler(async (req, res) => {
   }
 
   const updatedTrip = await trip.save();
+
+  if (status === 'Completed') {
+    await notifyTripCompleted(trip._id);
+  }
+
   res.json({ success: true, data: updatedTrip });
 });
 

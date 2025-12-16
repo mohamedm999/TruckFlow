@@ -2,14 +2,10 @@ import User from '../models/User.js';
 import { ApiError } from './errorMiddleware.js';
 import { verifyAccessToken } from '../utils/tokenUtils.js';
 
-/**
- * Protect routes - verify Access Token
- */
 export const protect = async (req, res, next) => {
   try {
     let token;
 
-    // Check for token in Authorization header
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
     }
@@ -18,10 +14,8 @@ export const protect = async (req, res, next) => {
       throw new ApiError(401, 'Not authorized, no token provided');
     }
 
-    // Verify access token
     const decoded = verifyAccessToken(token);
 
-    // Get user from token
     const user = await User.findById(decoded.id).select('-password');
 
     if (!user) {
@@ -47,10 +41,6 @@ export const protect = async (req, res, next) => {
   }
 };
 
-/**
- * Authorize by role
- * @param  {...string} roles - Allowed roles
- */
 export const authorize = (...roles) => {
   return (req, res, next) => {
     if (!req.user) {
@@ -65,12 +55,5 @@ export const authorize = (...roles) => {
   };
 };
 
-/**
- * Admin only middleware
- */
 export const adminOnly = authorize('admin');
-
-/**
- * Chauffeur only middleware
- */
 export const chauffeurOnly = authorize('chauffeur');
