@@ -47,7 +47,6 @@ export const createTruck = asyncHandler(async (req, res) => {
   }
 });
 
-
 export const updateTruck = asyncHandler(async (req, res) => {
   const truck = await Truck.findById(req.params.id);
 

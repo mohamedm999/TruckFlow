@@ -18,7 +18,6 @@ export const getTire = asyncHandler(async (req, res) => {
   }
 });
 
-
 export const createTire = asyncHandler(async (req, res) => {
   const { serialNumber, brand, size, status, vehicleType, vehicleId, mileageAtInstall, wearLevel } = req.body;
 

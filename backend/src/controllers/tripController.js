@@ -76,6 +76,9 @@ export const createTrip = asyncHandler(async (req, res) => {
   });
 
   if (trip) {
+    await trip.populate('truckId', 'registrationNumber brand model');
+    await trip.populate('trailerId', 'registrationNumber type');
+    await trip.populate('chauffeurId', 'firstName lastName');
     res.status(201).json({ success: true, data: trip });
   } else {
     throw new ApiError(400, 'Invalid trip data');
@@ -102,6 +105,9 @@ export const updateTrip = asyncHandler(async (req, res) => {
     if (req.body.chauffeurId) trip.chauffeurId = req.body.chauffeurId;
 
     const updatedTrip = await trip.save();
+    await updatedTrip.populate('truckId', 'registrationNumber brand model');
+    await updatedTrip.populate('trailerId', 'registrationNumber type');
+    await updatedTrip.populate('chauffeurId', 'firstName lastName');
     res.json({ success: true, data: updatedTrip });
   } else {
     throw new ApiError(404, 'Trip not found');
